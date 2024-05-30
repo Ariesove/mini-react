@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <div id="root"></div>
+</body>
+<script>
+ 
+  // finally target create ReactDom.createRoot(document.getElementById('app')).render(<App />)
+  // create true dom
+  const trueDom = document.createElement('div')
+  trueDom.id = 'app'
+  console.log('%c [  ]-17', 'font-size:13px; background:pink; color:#bf2c9f;', trueDom)
+  document.querySelector('#root').append(trueDom);
+
+  const textNode = document.createTextNode('');
+  textNode.nodeValue = 'hello world'
+  trueDom.append(textNode)
+
+  const virDom = {
+    type: 'div',
+    props: {
+      id: 'app',
+        children:[
+  {
+            type: 'TEXT_ELEMENT',
+            props:{},
+            children:[
+            ]
+    }
+    ]
+  }
+  }
+  const createTextNode = () =>{
+    return {type:'TEXT_ELEMENT',props:{},children:[]}
+  }
+  const createElement = (tag,props,children) => {
+    return {
+      type:tag,
+      props:{
+        ...props,
+        children
+      }
+
+    }
+  }
+  const App = createElement('div',{id:'app'},[]);
+  // render  的功能是是把传入的组件元素，挂载到指定的DOM节点上。
+    const render = (App,container) => {
+      const target =  document.createElement(App.type,App.props,[])
+      for(let attr in App.props){
+        target[attr] = App.props[attr]
+      }
+      //待补充children
+      children.forEach((item) =>{
+        render(item,target)
+      })
+      container.append(target)
+      return target
+
+    }
+
+
+
+
+
+     const ReactDom = {
+    createRoot: (container) => ({ render: (APP) => {
+      render(App,dom)
+    } }),
+  }
+
+  ReactDom.createRoot(document.querySelector('#root')).render(App)
+  </script>
+</html>
