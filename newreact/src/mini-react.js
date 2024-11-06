@@ -56,12 +56,12 @@ function workLoop(deadline) {
 requestIdleCallback(workLoop);
 
 
-const commitDeletion = (fiber, domParent) => { 
-  if(fiber.dom) {
+const commitDeletion = (fiber, domParent) => {
+  if (fiber.dom) {
     domParent.removeChild
- }else {
+  } else {
     commitDeletion(fiber.child, domParent)
- }
+  }
 
 }
 // 遍历fiebr链表，并执行effect 函数
@@ -75,25 +75,70 @@ const commitWork = (fiber) => {
   }
   const domParent = domParentFiber.dom
 
-  if(fiber.effectTag === "PLACEMENT" && fiber.dom != null) {
+  if (fiber.effectTag === "PLACEMENT" && fiber.dom != null) {
     domParent.appendChild(fiber.dom)
-  }else if (fiber.effectTag === 'UPDATE' && fiber.dom != null) {
+  } else if (fiber.effectTag === 'UPDATE' && fiber.dom != null) {
     // 不知道啥意思
     updateDom(fiber.dom, fiber.alternate.props, fiber.props)
 
-  }else if(fiber.effectTag === 'DELETION') {
+  } else if (fiber.effectTag === 'DELETION') {
     commitDeletion(fiber, domParent)
   }
 
   commitWork(fiber.child)
   commitWork(fiber.sibling)
 }
+function isDepsEqual(deps, newDeps) {
+  if (deps.length !== newDeps.length) {
+    return false;
+  }
 
+  for (let i = 0; i < deps.length; i++) {
+    if (deps[i] !== newDeps[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+const commitEffectHooks = () => {
+  //执行useEffect 里面的return 里面的cleanUp函数
+  const runCleanUp = (fiber) => {
+    if (!fiber) return
+    fiber.alternate?.effectHooks?.forEach((hook, index) => {
+      const deps = fiber.effectHooks[index].deps;
+      //当依赖不存在或者新旧依赖不等时，执行清理函数
+      if (!hook.deps || !isDepsEqual(hook.deps, deps)) {
+        hook.cleanup?.();
+      }
+    })
+    runCleanUp(fiber.child)
+    runCleanUp(fiber.sibling)
+
+
+  }
+  // 考虑首次渲染的情况
+  const run = (fiber) => {
+    if (!fiber) return
+
+    fiber.effectHooks.forEach((newhook, index) => {
+      const { deps, cleanup, effect } = hook;
+      if (!fiber?.alternate) {
+        cleanup()
+      }
+
+
+    })
+  }
+  run(wipFiber)
+}
 const commitRoot = () => {
   // 为什么要去 优先来去执行里面的删除dom的effect
   deletions.forEach(commitWork);
   commitWork(wipRoot.child);
+  // 处理Effect 具体是哪里
+  commitEffectHooks()
   currentRoot = wipRoot;
+
   //意义？
   wipRoot = null;
   deletions = []
