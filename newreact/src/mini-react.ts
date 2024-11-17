@@ -1,5 +1,15 @@
 (function () {
-  function createElement(type, props, ...children) {
+  type Elements = {
+    type: string,
+    props: {
+      // 可索引
+      [key: string]: any
+      children: any[],
+
+    }
+  }
+
+  function createElement(type: string, props: any, ...children: any[]): Elements {
     return {
       type,
       props: {
@@ -13,7 +23,7 @@
     };
   }
 
-  function createTextNode(nodeValue) {
+  function createTextNode(nodeValue: string | number): Elements {
     return {
       type: "TEXT_ELEMENT",
       props: {
@@ -22,16 +32,35 @@
       },
     };
   }
+  type Fiber = {
+    return?: Fiber | null,
+    sibling?: Fiber | null,
+    child?: Fiber | null,
+    dom: HTMLElement | null,
+    alternate: Fiber | null,
+    props: {
+      // 可索引
+      [key: string]: any
+      children?: any[],
 
+    },
+    stateHooks?: Array<any> | null,
+    effectHooks?: Array<any> | null,
+    type?: any,
+    effectTag?: "PLACEMENT" | "UPDATE" | "DELETION" | null,
+
+
+
+  }
 
   // 用 nextUnitOfWork 指向下一个要处理的 fiber 节点。
-  let nextUnitOfWork = null;
+  let nextUnitOfWork: Fiber | null = null;
   // 一个是当前正在处理的 fiber 链表的根 wipRoot
-  let wipRoot = null;
+  let wipRoot: Fiber | null = null;
   // 历史根root
-  let currentRoot = null;
-  let deletions = null;
-  function render(element, container) {
+  let currentRoot: Fiber | null = null;
+  let deletions: Fiber | null = null;
+  function render(element: Elements, container: HTMLElement): void {
     wipRoot = {
       dom: container,
       props: {
@@ -43,8 +72,11 @@
     nextUnitOfWork = wipRoot;
   }
   // 处理fiber节点，在浏览器空闲时刻
-  function workLoop(deadline) {
-    let shouldYield = false
+  function workLoop(deadline: { timeRemaining: () => number }): void {
+
+
+    let shouldYield = false;
+    // console.log('nextUnitOfWork111', nextUnitOfWork)
     while (nextUnitOfWork && !shouldYield) {
       nextUnitOfWork = performUnitOfWork(
         nextUnitOfWork
@@ -55,7 +87,7 @@
     if (!nextUnitOfWork && wipRoot) {
       commitRoot()
     }
-
+    // console.log('nextUnitOfWork', nextUnitOfWork)
     requestIdleCallback(workLoop)
   }
 
@@ -168,8 +200,10 @@
 
 
 
-  // fi根据fiber节点类型分类处理
-  function performUnitOfWork(fiber) {
+  // fi根据fiber节点类型分类处理 ?? 具体怎么把fiber转化链表不太理解
+  function performUnitOfWork(fiber: Fiber): Fiber | undefined {
+
+    console.log('fiber', fiber)
     const isFunctionComponent = fiber.type instanceof Function;
     if (isFunctionComponent) {
       updateFunctionComponent(fiber);
@@ -188,22 +222,25 @@
       // nextFiber = nextFiber.parent;
       nextFiber = nextFiber.return;
     }
+
+
   }
 
 
   // 指向当前处理的Fiber
-  let wipFiber = null;
+  let wipFiber: Fiber | null = null;
   // 多个hook时通过序号进行区分
-  let stateHookIndex = null;
+  let stateHookIndex: Number | null = null;
 
-  function updateFunctionComponent(fiber) {
+  function updateFunctionComponent(fiber: Fiber): void {
     wipFiber = fiber;
     stateHookIndex = 0;
     // 分别处理useState和useEffect 的值，不过这个到底是劣势value还是说整个hook对象
     wipFiber.stateHooks = [];
     wipFiber.effectHooks = [];
-
-    const children = [fiber.type(fiber.props)];
+    console.log('fiberType', fiber)
+    const children = [fiber.type(fiber.props)] as Elements[];
+    console.log('children', children)
     reconcileChildren(fiber, children);
   }
 
@@ -212,9 +249,15 @@
       fiber.dom = createDom(fiber);
     }
     reconcileChildren(fiber, fiber.props.children);
-  }
+    console.log('fiberDom', fiber.dom)
 
-  function createDom(fiber) {
+  }
+  /**
+  * 根据 fiber 对象创建对应的 DOM 节点
+  * @param fiber - 描述 DOM 节点的 fiber 对象
+  * @returns 创建的 DOM 节点
+  */
+  function createDom(fiber: Fiber): HTMLElement {
     const dom =
       fiber.type == "TEXT_ELEMENT"
         ? document.createTextNode("")
@@ -224,6 +267,8 @@
 
     return dom;
   }
+
+
 
   const isEvent = (key) => key.startsWith("on");
   const isProperty = (key) => key !== "children" && !isEvent(key);
@@ -267,12 +312,11 @@
       });
   }
   // 递归处理子节点，逻辑较复杂，没太懂
-  // 主体思路就是拿到旧的fiber 链，依次和新fiber节点差异对比
-  function reconcileChildren(wipFiber, elements) {
+  // 主体思路就是拿到旧的fiber 链，依次和新Vddom节点差异对比
+  function reconcileChildren(wipFiber: Fiber, elements: Elements[]) {
     let index = 0;
     let oldFiber = wipFiber.alternate?.child;
     let prevSibling = null;
-
     while (index < elements.length || oldFiber != null) {
       const element = elements[index];
       let newFiber = null;
@@ -281,9 +325,9 @@
       // 新就type一样，只是去修改
       if (sameType) {
         newFiber = {
-          type: oldFiber.type,
+          type: oldFiber?.type,
           props: element.props,
-          dom: oldFiber.dom,
+          dom: oldFiber?.dom,
           return: wipFiber,
           alternate: oldFiber,
           effectTag: "UPDATE",
@@ -358,7 +402,7 @@
     const effectHook = {
       callback,
       deps,
-      //缺失
+      //缺失22
       cleanup: undefined,
     }
     wipFiber.effectHooks.push(effectHook);
@@ -369,6 +413,9 @@
     render,
     useState,
     useEffect,
-  }
-  window.MiniReact = MiniReact;
+  };
+
+  (window as any).MiniReact = MiniReact;
+
+
 })()

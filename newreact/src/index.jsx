@@ -1,4 +1,5 @@
-const { render, useState, useEffect } = window.MiniReact;
+console.log(window.MiniReact);
+const { render: MyRender, useState, useEffect } = window.MiniReact;
 
 function App() {
   const [count, setCount] = useState(0);
@@ -22,13 +23,11 @@ function App() {
     return 1;
   };
   return (
-    help() === 1 && (
-      <div>
-        <p>{count}</p>
-        <button onClick={handleClick}>加一</button>
-      </div>
-    )
+    <div>
+      <p>{count}</p>
+      <button onClick={handleClick}>加一</button>
+    </div>
   );
 }
 
-render(<App />, document.getElementById("root"));
+MyRender(<App />, document.getElementById("root"));
