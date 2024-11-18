@@ -24,7 +24,7 @@
     let wipRoot = null;
     // 历史根root
     let currentRoot = null;
-    let deletions = null;
+    let deletions = [];
     function render(element, container) {
         wipRoot = {
             dom: container,
@@ -206,7 +206,7 @@
     const isProperty = (key) => key !== "children" && !isEvent(key);
     const isNew = (prev, next) => (key) => prev[key] !== next[key];
     const isGone = (prev, next) => (key) => !(key in next);
-    // 更新元素dom，删除就属性，添加新属性
+    // 更新元素dom，删除就属性，添加新属性//这个时候，就已经有dom了吗？
     function updateDom(dom, prevProps, nextProps) {
         //Remove old or changed event listeners
         Object.keys(prevProps)

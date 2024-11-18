@@ -37,15 +37,15 @@
     sibling?: Fiber | null,
     child?: Fiber | null,
     dom: HTMLElement | null,
-    alternate: Fiber | null,
+    alternate?: Fiber | null,
     props: {
       // 可索引
       [key: string]: any
       children?: any[],
 
     },
-    stateHooks?: Array<any> | null,
-    effectHooks?: Array<any> | null,
+    stateHooks?: StateHook<any>[],
+    effectHooks?: Array<any>,
     type?: any,
     effectTag?: "PLACEMENT" | "UPDATE" | "DELETION" | null,
 
@@ -59,7 +59,7 @@
   let wipRoot: Fiber | null = null;
   // 历史根root
   let currentRoot: Fiber | null = null;
-  let deletions: Fiber | null = null;
+  let deletions: Array<any> = [];
   function render(element: Elements, container: HTMLElement): void {
     wipRoot = {
       dom: container,
@@ -270,13 +270,24 @@
 
 
 
-  const isEvent = (key) => key.startsWith("on");
-  const isProperty = (key) => key !== "children" && !isEvent(key);
-  const isNew = (prev, next) => (key) => prev[key] !== next[key];
-  const isGone = (prev, next) => (key) => !(key in next);
+  const isEvent = (key: string): Boolean => key.startsWith("on");
+  const isProperty = (key: string): boolean => key !== "children" && !isEvent(key);
+  const isNew = (prev: {
+    [key: string]: any
+  }, next: {
+    [key: string]: any
+  }) => (key: string) => prev[key] !== next[key];
+  const isGone = (
+    prev: { [key: string]: any },
+    next: { [key: string]: any }
+  ) => (key: string): boolean => !(key in next);
 
-  // 更新元素dom，删除就属性，添加新属性
-  function updateDom(dom, prevProps, nextProps) {
+  // 更新元素dom，删除就属性，添加新属性//这个时候，就已经有dom了吗？
+  function updateDom(dom: HTMLElement, prevProps: {
+    [key: string]: any
+  }, nextProps: {
+    [key: string]: any
+  }) {
     //Remove old or changed event listeners
     Object.keys(prevProps)
       .filter(isEvent)
@@ -313,7 +324,7 @@
   }
   // 递归处理子节点，逻辑较复杂，没太懂
   // 主体思路就是拿到旧的fiber 链，依次和新Vddom节点差异对比
-  function reconcileChildren(wipFiber: Fiber, elements: Elements[]) {
+  function reconcileChildren(wipFiber: Fiber, elements: Elements[]): void {
     let index = 0;
     let oldFiber = wipFiber.alternate?.child;
     let prevSibling = null;
@@ -364,13 +375,16 @@
     }
     // 这里看出来 ，fiber其实就是一个对象
   }
-
-  function useState(initialState) {
+type StateHook<T> = {
+    state: T,
+    queue: Array<any>,
+}
+  function useState<T>(initialState:T) {
     const currentFiber = wipFiber;
 
     const oldHook = wipFiber.alternate?.stateHooks[stateHookIndex];
 
-    const stateHook = {
+    const stateHook:StateHook = {
       state: oldHook ? oldHook.state : initialState,
       queue: oldHook ? oldHook.queue : [],
     };
