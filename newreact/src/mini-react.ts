@@ -44,8 +44,8 @@
       children?: any[],
 
     },
-    stateHooks?: StateHook<any>[],
-    effectHooks?: Array<any>,
+    stateHooks: StateHook<any>[],
+    effectHooks: Array<any>,
     type?: any,
     effectTag?: "PLACEMENT" | "UPDATE" | "DELETION" | null,
 
@@ -54,7 +54,7 @@
   }
 
   // 用 nextUnitOfWork 指向下一个要处理的 fiber 节点。
-  let nextUnitOfWork: Fiber | null = null;
+  let nextUnitOfWork: Fiber | undefined  | null= null;
   // 一个是当前正在处理的 fiber 链表的根 wipRoot
   let wipRoot: Fiber | null = null;
   // 历史根root
@@ -95,22 +95,22 @@
 
 
 
-  const commitDeletion = (fiber, domParent) => {
-    if (fiber.dom) {
+  const commitDeletion = (fiber:Fiber | null | undefined, domParent:HTMLElement) => {
+    if (fiber?.dom) {
       domParent.removeChild(fiber.dom)
     } else {
-      commitDeletion(fiber.child, domParent)
+      commitDeletion(fiber?.child, domParent)
     }
 
   }
   // 遍历fiebr链表，并执行effect 函数
-  const commitWork = (fiber) => {
+  const commitWork = (fiber:Fiber | undefined | null) => {
     if (!fiber) return
 
     // 为什么非得找最外层的父元素 ？？ 
     let domParentFiber = fiber.return
-    while (!domParentFiber.dom) {
-      domParentFiber = domParentFiber.return
+    while (!domParentFiber?.dom) {
+      domParentFiber = domParentFiber?.return
     }
     const domParent = domParentFiber.dom
 
@@ -118,7 +118,7 @@
       domParent.appendChild(fiber.dom)
     } else if (fiber.effectTag === 'UPDATE' && fiber.dom != null) {
       // 不知道啥意思
-      updateDom(fiber.dom, fiber.alternate.props, fiber.props)
+      updateDom(fiber.dom, fiber?.alternate?.props, fiber.props)
 
     } else if (fiber.effectTag === 'DELETION') {
       commitDeletion(fiber, domParent)
@@ -230,7 +230,7 @@
   // 指向当前处理的Fiber
   let wipFiber: Fiber | null = null;
   // 多个hook时通过序号进行区分
-  let stateHookIndex: Number | null = null;
+  let stateHookIndex: number = 0;
 
   function updateFunctionComponent(fiber: Fiber): void {
     wipFiber = fiber;
@@ -285,7 +285,7 @@
   // 更新元素dom，删除就属性，添加新属性//这个时候，就已经有dom了吗？
   function updateDom(dom: HTMLElement, prevProps: {
     [key: string]: any
-  }, nextProps: {
+  } | null | undefined, nextProps: {
     [key: string]: any
   }) {
     //Remove old or changed event listeners
@@ -375,30 +375,30 @@
     }
     // 这里看出来 ，fiber其实就是一个对象
   }
-type StateHook<T> = {
+  type StateHook<T> = {
     state: T,
     queue: Array<any>,
-}
-  function useState<T>(initialState:T) {
+  }
+  function useState<T>(initialState: T) {
     const currentFiber = wipFiber;
 
-    const oldHook = wipFiber.alternate?.stateHooks[stateHookIndex];
-
-    const stateHook:StateHook = {
+    const oldHook = wipFiber?.alternate?.stateHooks[stateHookIndex];
+// 这么写是对的吗
+    const stateHook: StateHook<T> = {
       state: oldHook ? oldHook.state : initialState,
       queue: oldHook ? oldHook.queue : [],
     };
 
-    stateHook.queue.forEach((action) => {
+    stateHook.queue.forEach((action: Function) => {
       stateHook.state = action(stateHook.state);
     });
 
     stateHook.queue = [];
 
     stateHookIndex++;
-    wipFiber.stateHooks.push(stateHook);
+    wipFiber?.stateHooks.push(stateHook);
 
-    function setState(action) {
+    function setState(action:T | ((prevState:T) => T)) {
       const isFunction = typeof action === "function";
 
       stateHook.queue.push(isFunction ? action : () => action);
@@ -412,14 +412,14 @@ type StateHook<T> = {
 
     return [stateHook.state, setState];
   }
-  const useEffect = (callback, deps) => {
+  const useEffect = (callback:Function, deps:Array<any>):void => {
     const effectHook = {
       callback,
       deps,
       //缺失22
       cleanup: undefined,
     }
-    wipFiber.effectHooks.push(effectHook);
+    wipFiber?.effectHooks.push(effectHook);
   }
 
   const MiniReact = {

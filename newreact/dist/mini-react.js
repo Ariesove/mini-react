@@ -52,21 +52,22 @@
     }
     requestIdleCallback(workLoop);
     const commitDeletion = (fiber, domParent) => {
-        if (fiber.dom) {
+        if (fiber === null || fiber === void 0 ? void 0 : fiber.dom) {
             domParent.removeChild(fiber.dom);
         }
         else {
-            commitDeletion(fiber.child, domParent);
+            commitDeletion(fiber === null || fiber === void 0 ? void 0 : fiber.child, domParent);
         }
     };
     // 遍历fiebr链表，并执行effect 函数
     const commitWork = (fiber) => {
+        var _a;
         if (!fiber)
             return;
         // 为什么非得找最外层的父元素 ？？ 
         let domParentFiber = fiber.return;
-        while (!domParentFiber.dom) {
-            domParentFiber = domParentFiber.return;
+        while (!(domParentFiber === null || domParentFiber === void 0 ? void 0 : domParentFiber.dom)) {
+            domParentFiber = domParentFiber === null || domParentFiber === void 0 ? void 0 : domParentFiber.return;
         }
         const domParent = domParentFiber.dom;
         if (fiber.effectTag === "PLACEMENT" && fiber.dom != null) {
@@ -74,7 +75,7 @@
         }
         else if (fiber.effectTag === 'UPDATE' && fiber.dom != null) {
             // 不知道啥意思
-            updateDom(fiber.dom, fiber.alternate.props, fiber.props);
+            updateDom(fiber.dom, (_a = fiber === null || fiber === void 0 ? void 0 : fiber.alternate) === null || _a === void 0 ? void 0 : _a.props, fiber.props);
         }
         else if (fiber.effectTag === 'DELETION') {
             commitDeletion(fiber, domParent);
@@ -171,7 +172,7 @@
     // 指向当前处理的Fiber
     let wipFiber = null;
     // 多个hook时通过序号进行区分
-    let stateHookIndex = null;
+    let stateHookIndex = 0;
     function updateFunctionComponent(fiber) {
         wipFiber = fiber;
         stateHookIndex = 0;
@@ -293,7 +294,8 @@
     function useState(initialState) {
         var _a;
         const currentFiber = wipFiber;
-        const oldHook = (_a = wipFiber.alternate) === null || _a === void 0 ? void 0 : _a.stateHooks[stateHookIndex];
+        const oldHook = (_a = wipFiber === null || wipFiber === void 0 ? void 0 : wipFiber.alternate) === null || _a === void 0 ? void 0 : _a.stateHooks[stateHookIndex];
+        // 这么写是对的吗
         const stateHook = {
             state: oldHook ? oldHook.state : initialState,
             queue: oldHook ? oldHook.queue : [],
@@ -303,7 +305,7 @@
         });
         stateHook.queue = [];
         stateHookIndex++;
-        wipFiber.stateHooks.push(stateHook);
+        wipFiber === null || wipFiber === void 0 ? void 0 : wipFiber.stateHooks.push(stateHook);
         function setState(action) {
             const isFunction = typeof action === "function";
             stateHook.queue.push(isFunction ? action : () => action);
@@ -319,7 +321,7 @@
             //缺失22
             cleanup: undefined,
         };
-        wipFiber.effectHooks.push(effectHook);
+        wipFiber === null || wipFiber === void 0 ? void 0 : wipFiber.effectHooks.push(effectHook);
     };
     const MiniReact = {
         createElement,
