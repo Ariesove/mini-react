@@ -54,9 +54,9 @@
   }
 
   // 用 nextUnitOfWork 指向下一个要处理的 fiber 节点。
-  let nextUnitOfWork: Fiber | undefined  | null= null;
+  let nextUnitOfWork: Fiber | undefined | null = null;
   // 一个是当前正在处理的 fiber 链表的根 wipRoot
-  let wipRoot: Fiber | null = null;
+  let wipRoot: Fiber | null | undefined = null;
   // 历史根root
   let currentRoot: Fiber | null = null;
   let deletions: Array<any> = [];
@@ -95,7 +95,7 @@
 
 
 
-  const commitDeletion = (fiber:Fiber | null | undefined, domParent:HTMLElement) => {
+  const commitDeletion = (fiber: Fiber | null | undefined, domParent: HTMLElement) => {
     if (fiber?.dom) {
       domParent.removeChild(fiber.dom)
     } else {
@@ -104,7 +104,7 @@
 
   }
   // 遍历fiebr链表，并执行effect 函数
-  const commitWork = (fiber:Fiber | undefined | null) => {
+  const commitWork = (fiber: Fiber | undefined | null) => {
     if (!fiber) return
 
     // 为什么非得找最外层的父元素 ？？ 
@@ -127,7 +127,7 @@
     commitWork(fiber.child)
     commitWork(fiber.sibling)
   }
-  function isDepsEqual(deps, newDeps) {
+  function isDepsEqual(deps: Array<any>, newDeps: Array<any>): boolean {
     if (deps.length !== newDeps.length) {
       return false;
     }
@@ -139,8 +139,9 @@
     }
     return true;
   }
-  function commitEffectHooks() {
-    function runCleanup(fiber) {
+  function commitEffectHooks(): void {
+    // 卸载生命周期，于依赖发生变化时去执行
+    function runCleanup(fiber: Fiber | null | undefined): void {
       if (!fiber) return;
 
       fiber.alternate?.effectHooks?.forEach((hook, index) => {
@@ -155,7 +156,7 @@
       runCleanup(fiber.sibling);
     }
 
-    function run(fiber) {
+    function run(fiber: Fiber | null | undefined): void {
       if (!fiber) return;
 
       fiber.effectHooks?.forEach((newHook, index) => {
@@ -180,21 +181,24 @@
       run(fiber.child);
       run(fiber.sibling);
     }
-
+    // 模拟依赖变化先进行卸载函数执行，再去执行effect里面的回调
     runCleanup(wipRoot);
     run(wipRoot);
   }
   const commitRoot = () => {
-    // 为什么要去 优先来去执行里面的删除dom的effect
-    deletions.forEach(commitWork);
-    commitWork(wipRoot.child);
-    // 处理Effect 具体是哪里
-    commitEffectHooks()
-    currentRoot = wipRoot;
+    if (wipRoot) {
+      // 为什么要去 优先来去执行里面的删除dom的effect
+      deletions.forEach(commitWork);
+      commitWork(wipRoot.child);
+      // 
+      commitEffectHooks()
+      currentRoot = wipRoot;
 
-    //意义？
-    wipRoot = null;
-    deletions = []
+      //意义-初始化状态
+      wipRoot = null;
+      deletions = []
+    }
+
   }
 
 
@@ -383,7 +387,7 @@
     const currentFiber = wipFiber;
 
     const oldHook = wipFiber?.alternate?.stateHooks[stateHookIndex];
-// 这么写是对的吗
+    // 这么写是对的吗
     const stateHook: StateHook<T> = {
       state: oldHook ? oldHook.state : initialState,
       queue: oldHook ? oldHook.queue : [],
@@ -398,7 +402,7 @@
     stateHookIndex++;
     wipFiber?.stateHooks.push(stateHook);
 
-    function setState(action:T | ((prevState:T) => T)) {
+    function setState(action: T | ((prevState: T) => T)) {
       const isFunction = typeof action === "function";
 
       stateHook.queue.push(isFunction ? action : () => action);
@@ -412,8 +416,14 @@
 
     return [stateHook.state, setState];
   }
-  const useEffect = (callback:Function, deps:Array<any>):void => {
-    const effectHook = {
+
+  interface EffectHook {
+    callback: () => void,
+    deps: Array<any>,
+    cleanup?: () => void,
+  }
+  const useEffect = (callback: () => void, deps: Array<any>): void => {
+    const effectHook: EffectHook = {
       callback,
       deps,
       //缺失22
